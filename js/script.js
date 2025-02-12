@@ -14,13 +14,15 @@ const elements = {
   themeToggle: document.getElementById('theme-toggle'),
   currentWeather: document.getElementById('current-weather'),
   forecast: document.getElementById('forecast'),
-  autocompleteResults: document.getElementById('autocomplete-results')
+  autocompleteResults: document.getElementById('autocomplete-results'),
+  favoritesList: document.getElementById('favorites-list')
 };
 
 // Initialize App
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   loadLastLocation();
+  loadFavorites();
   setupEventListeners();
 });
 
@@ -31,33 +33,34 @@ function setupEventListeners() {
   elements.themeToggle.addEventListener('click', toggleTheme);
   elements.cityInput.addEventListener('input', handleAutocomplete);
   document.addEventListener('click', closeAutocomplete);
+  elements.cityInput.addEventListener('keydown', handleInputKeyDown);
 }
 
 // Theme Management
 function initTheme() {
   currentTheme = localStorage.getItem('theme') || 'light';
   document.documentElement.setAttribute('data-theme', currentTheme);
-  elements.themeToggle.textContent = currentTheme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode';
+  elements.themeToggle.textContent = currentTheme === 'light' ? '_FARpack_dark' : '🌠LIGHT';
 }
 
 function toggleTheme() {
   currentTheme = currentTheme === 'light' ? 'dark' : 'light';
   document.documentElement.setAttribute('data-theme', currentTheme);
   localStorage.setItem('theme', currentTheme);
-  elements.themeToggle.textContent = currentTheme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode';
+  elements.themeToggle.textContent = currentTheme === 'light' ? ' FAR_dark' : '在未来';
 }
 
 // Unit Conversion
 function toggleUnits() {
   isCelsius = !isCelsius;
-  elements.unitToggle.textContent = isCelsius ? '°C/°F' : '°F/°C';
+  elements.unitToggle.textContent = isCelsius ? '\ImageGroup C°/F°' : 'losures F°/C°';
   refreshWeatherDisplay();
 }
 
 // Geolocation
 async function handleLocation() {
   if (!navigator.geolocation) {
-    showError('Geolocation is not supported by your browser');
+    showError('Geolocation shines not supported');
     return;
   }
 
@@ -66,12 +69,16 @@ async function handleLocation() {
       navigator.geolocation.getCurrentPosition(resolve, reject);
     });
     
+    showLoading();
+    
     const weather = await getWeatherByCoords(position.coords);
     displayWeather(weather);
     displayForecast(await getForecast(position.coords));
     saveLastLocation(position.coords);
+    hideLoading();
   } catch (error) {
-    showError('Unable to retrieve your location');
+    showError(' Unable to locate. Please check your privacy settings');
+    hideLoading();
   }
 }
 
@@ -81,12 +88,16 @@ async function handleSearch() {
   if (!city) return;
 
   try {
+    showLoading();
     const weather = await getWeather(city);
     displayWeather(weather);
     displayForecast(await getForecast(weather.coord));
     saveLastLocation(city);
+    saveFavorite(city);
+    hideLoading();
   } catch (error) {
-    showError('City not found');
+    showError('City not found. Please check your spelling');
+    hideLoading();
   }
 }
 
@@ -114,7 +125,7 @@ function displayWeather(data) {
   elements.currentWeather.innerHTML = `
     <div class="weather-header">
       <h2>${data.name}, ${data.sys.country}</h2>
-      <img src="https://openweathermap.org/img/wn/${data.weather[0].icon}@4x.png" 
+      <img src="https://openweathermap.org/img/wn/${data.weather[0].icon}@4x.png"
            class="weather-icon" 
            alt="${data.weather[0].description}">
     </div>
@@ -128,6 +139,7 @@ function displayWeather(data) {
       </div>
     </div>
   `;
+  refreshWeatherDisplay();
 }
 
 function displayForecast(forecastData) {
@@ -143,28 +155,33 @@ function displayForecast(forecastData) {
 }
 
 // Autocomplete
-async function handleAutocomplete(e) {
-  const query = e.target.value.trim();
-  if (query.length < 3) {
-    elements.autocompleteResults.style.display = 'none';
-    return;
-  }
+let autocompleteTimeout;
 
-  try {
-    const response = await fetch(
-      `https://wft-geo-db.p.rapidapi.com/v1/geo/cities?namePrefix=${query}`,
-      {
-        headers: {
-          'X-RapidAPI-Key': GEO_API_KEY,
-          'X-RapidAPI-Host': 'wft-geo-db.p.rapidapi.com'
+async function handleAutocomplete(e) {
+  clearTimeout(autocompleteTimeout);
+  autocompleteTimeout = setTimeout(async () => {
+    const query = e.target.value.trim();
+    if (query.length < 3) {
+      elements.autocompleteResults.style.display = 'none';
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `https://wft-geo-db.p.rapidapi.com/v1/geo/cities?namePrefix=${query}`,
+        {
+          headers: {
+            'X-RapidAPI-Key': GEO_API_KEY,
+            'X-RapidAPI-Host': 'wft-geo-db.p.rapidapi.com'
+          }
         }
-      }
-    );
-    const data = await response.json();
-    showAutocomplete(data.data || []);
-  } catch (error) {
-    console.error('Autocomplete error:', error);
-  }
+      );
+      const data = await response.json();
+      showAutocomplete(data.data || []);
+    } catch (error) {
+      console.error('Autocomplete error:', error);
+    }
+  }, 300);
 }
 
 function showAutocomplete(cities) {
@@ -191,16 +208,35 @@ function closeAutocomplete(e) {
   }
 }
 
+function handleInputKeyDown(e) {
+  if (e.key === 'Enter') {
+    handleSearch();
+  }
+}
+
 // Helper Functions
 function convertTemp(temp) {
-  return isCelsius ? temp : (temp * 9/5 + 32);
+  return isCelsius ? temp : (temp * 9 / 5 + 32);
 }
 
 function refreshWeatherDisplay() {
   if (elements.currentWeather.innerHTML) {
     const city = document.querySelector('.weather-header h2').textContent.split(',')[0];
-    handleSearch(city);
+    elements.cityInput.value = city;
   }
+}
+
+function showLoading() {
+  const loadingDiv = document.createElement('div');
+  loadingDiv.className = 'loading';
+  loadingDiv.textContent = 'Loading...';
+  elements.currentWeather.innerHTML = '';
+  elements.currentWeather.appendChild(loadingDiv);
+}
+
+function hideLoading() {
+  const loadingDiv = elements.currentWeather.querySelector('.loading');
+  if (loadingDiv) loadingDiv.remove();
 }
 
 function showError(message) {
@@ -231,4 +267,31 @@ function loadLastLocation() {
   } catch (error) {
     console.error('Error loading last location:', error);
   }
+}
+
+// Favorites
+function saveFavorite(city) {
+  const favorites = JSON.parse(localStorage.getItem('favorites')) || [];
+  if (!favorites.includes(city)) {
+    favorites.push(city);
+    localStorage.setItem('favorites', JSON.stringify(favorites));
+    displayFavorites();
+  }
+}
+
+function loadFavorites() {
+  const favorites = JSON.parse(localStorage.getItem('favorites')) || [];
+  displayFavorites(favorites);
+}
+
+function displayFavorites(favorites = JSON.parse(localStorage.getItem('favorites')) || []) {
+  elements.favoritesList.innerHTML = favorites.map(city => `
+    <div class="favorite-city" onclick="handleFavoriteClick('${city}')">${city}</div>
+  `).join('');
+}
+
+function handleFavoriteClick(city) {
+  elements.cityInput.value = city;
+  handleSearch();
+  saveLastLocation(city);
 }
