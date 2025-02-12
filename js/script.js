@@ -1,5 +1,5 @@
-const API_KEY = 'YOUR_OPENWEATHER_API_KEY';
-const GEO_API_KEY = 'YOUR_GEODB_API_KEY';
+const API_KEY = 'YOUR_OPENWEATHER_API_KEY'; // Replace with your OpenWeatherMap API key
+const GEO_API_KEY = 'YOUR_GEODB_API_KEY';   // Replace with your RapidAPI key
 
 // State
 let isCelsius = true;
@@ -65,11 +65,16 @@ async function handleLocation() {
     const position = await new Promise((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(resolve, reject);
     });
-    
-    const weather = await getWeatherByCoords(position.coords);
+
+    const coords = {
+      lat: position.coords.latitude,
+      lon: position.coords.longitude
+    };
+
+    const weather = await getWeather(coords);
     displayWeather(weather);
-    displayForecast(await getForecast(position.coords));
-    saveLastLocation(position.coords);
+    displayForecast(await getForecast(coords));
+    saveLastLocation(coords);
   } catch (error) {
     showError('Unable to retrieve your location');
   }
