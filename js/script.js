@@ -71,7 +71,25 @@ async function handleLocation() {
 
   try {
     const position = await new Promise((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(resolve, reject);
+      navigator.geolocation.getCurrentPosition(resolve, (error) => {
+        // Handle specific geolocation errors
+        let errorMessage = 'Unable to retrieve your location';
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = 'Permission to access your location was denied';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = 'Your location could not be determined';
+            break;
+          case error.TIMEOUT:
+            errorMessage = 'The request to get your location timed out';
+            break;
+          case error.UNKNOWN_ERROR:
+            errorMessage = 'An unknown error occurred';
+            break;
+        }
+        reject(new Error(errorMessage));
+      });
     });
     
     const weather = await getWeatherByCoords(position.coords);
@@ -79,7 +97,7 @@ async function handleLocation() {
     displayForecast(await getForecast(position.coords));
     saveLastLocation(position.coords);
   } catch (error) {
-    showError('Unable to retrieve your location');
+    showError(error.message);
   }
 }
 
