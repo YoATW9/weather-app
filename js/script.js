@@ -60,24 +60,49 @@ function toggleUnits() {
 // Geolocation
 async function handleLocation() {
   if (!navigator.geolocation) {
-    showError('Geolocation shines not supported');
+    showError('Geolocation is not supported by your browser');
     return;
   }
 
   try {
-    const position = await new Promise((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(resolve, reject);
-    });
-    
     showLoading();
-    
-    const weather = await getWeatherByCoords(position.coords);
+    const position = await new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(
+        resolve,
+        (error) => {
+          // Handle specific geolocation errors
+          let message = 'Unable to retrieve your location';
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              message = 'Permission to access your location was denied';
+              break;
+            case error.POSITION_UNAVAILABLE:
+              message = 'Your location cannot be determined';
+              break;
+            case error.TIMEOUT:
+              message = 'The request to get your location timed out';
+              break;
+            case error.UNKNOWN_ERROR:
+              message = 'An unknown error occurred';
+              break;
+          }
+          reject(new Error(message));
+        }
+      );
+    });
+
+    const coords = {
+      lat: position.coords.latitude,
+      lon: position.coords.longitude
+    };
+
+    const weather = await getWeather(coords);
     displayWeather(weather);
-    displayForecast(await getForecast(position.coords));
-    saveLastLocation(position.coords);
+    displayForecast(await getForecast(coords));
+    saveLastLocation(coords);
     hideLoading();
   } catch (error) {
-    showError(' Unable to locate. Please check your privacy settings');
+    showError(error.message);
     hideLoading();
   }
 }
