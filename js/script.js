@@ -70,52 +70,54 @@ async function handleLocation() {
   }
 
   try {
+    // Get user's current position
     const position = await new Promise((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(resolve, (error) => {
-        // Handle specific geolocation errors
-        let errorMessage = 'Unable to retrieve your location';
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            errorMessage = 'Permission to access your location was denied';
-            break;
-          case error.POSITION_UNAVAILABLE:
-            errorMessage = 'Your location could not be determined';
-            break;
-          case error.TIMEOUT:
-            errorMessage = 'The request to get your location timed out';
-            break;
-          case error.UNKNOWN_ERROR:
-            errorMessage = 'An unknown error occurred';
-            break;
+      navigator.geolocation.getCurrentPosition(
+        resolve,
+        (error) => {
+          // Handle specific geolocation errors
+          let errorMessage = 'Unable to retrieve your location';
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage = 'Permission to access your location was denied';
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMessage = 'Your location could not be determined';
+              break;
+            case error.TIMEOUT:
+              errorMessage = 'The request to get your location timed out';
+              break;
+            case error.UNKNOWN_ERROR:
+              errorMessage = 'An unknown error occurred';
+              break;
+          }
+          reject(new Error(errorMessage));
         }
-        reject(new Error(errorMessage));
-      });
+      );
     });
-    
-    const weather = await getWeatherByCoords(position.coords);
+
+    // Convert position.coords to { lat, lon } format
+    const coords = {
+      lat: position.coords.latitude,
+      lon: position.coords.longitude
+    };
+
+    // Fetch weather data using coordinates
+    const weather = await getWeather(coords);
     displayWeather(weather);
-    displayForecast(await getForecast(position.coords));
-    saveLastLocation(position.coords);
+
+    // Fetch forecast data using coordinates
+    const forecastData = await getForecast(coords);
+    displayForecast(forecastData);
+    
+    // Save the coordinates in local storage
+    saveLastLocation(coords);
   } catch (error) {
     showError(error.message);
   }
 }
 
 // Weather Data
-async function handleSearch() {
-  const city = elements.cityInput.value.trim();
-  if (!city) return;
-
-  try {
-    const weather = await getWeather(city);
-    displayWeather(weather);
-    displayForecast(await getForecast(weather.coord));
-    saveLastLocation(city);
-  } catch (error) {
-    showError('City not found');
-  }
-}
-
 async function getWeather(query) {
   const url = typeof query === 'string' 
     ? `https://api.openweathermap.org/data/2.5/weather?q=${query}&units=metric&appid=${API_KEY}`
@@ -237,17 +239,16 @@ function refreshWeatherDisplay() {
 }
 
 function showError(message) {
-  const errorDiv = document.querySelector('.error');
-  if (errorDiv) {
-    errorDiv.textContent = message;
-    return;
-  }
+  // Remove existing error messages
+  const existingError = elements.currentWeather.querySelector('.error');
+  if (existingError) existingError.remove();
 
-  const newErrorDiv = document.createElement('div');
-  newErrorDiv.className = 'error';
-  newErrorDiv.textContent = message;
-  elements.currentWeather.appendChild(newErrorDiv);
-  setTimeout(() => newErrorDiv.remove(), 3000);
+  // Create new error message
+  const errorDiv = document.createElement('div');
+  errorDiv.className = 'error';
+  errorDiv.textContent = message;
+  elements.currentWeather.appendChild(errorDiv);
+  setTimeout(() => errorDiv.remove(), 3000);
 }
 
 // Local Storage
