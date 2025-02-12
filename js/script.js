@@ -4,6 +4,8 @@ const GEO_API_KEY = '05bd89c413msh97bdf92bc1a20cdp18cb47jsnb2234d8572c2';
 // State
 let isCelsius = true;
 let currentTheme = 'light';
+let currentWeatherData = null;
+let currentForecastData = null;
 
 // DOM Elements
 const elements = {
@@ -14,15 +16,13 @@ const elements = {
   themeToggle: document.getElementById('theme-toggle'),
   currentWeather: document.getElementById('current-weather'),
   forecast: document.getElementById('forecast'),
-  autocompleteResults: document.getElementById('autocomplete-results'),
-  favoritesList: document.getElementById('favorites-list')
+  autocompleteResults: document.getElementById('autocomplete-results')
 };
 
 // Initialize App
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   loadLastLocation();
-  loadFavorites();
   setupEventListeners();
 });
 
@@ -33,28 +33,34 @@ function setupEventListeners() {
   elements.themeToggle.addEventListener('click', toggleTheme);
   elements.cityInput.addEventListener('input', handleAutocomplete);
   document.addEventListener('click', closeAutocomplete);
-  elements.cityInput.addEventListener('keydown', handleInputKeyDown);
 }
 
 // Theme Management
 function initTheme() {
   currentTheme = localStorage.getItem('theme') || 'light';
   document.documentElement.setAttribute('data-theme', currentTheme);
-  elements.themeToggle.textContent = currentTheme === 'light' ? '_FARpack_dark' : '🌠LIGHT';
+  elements.themeToggle.textContent = currentTheme === 'light' ? 'dark.svg' : '_sun_light';
 }
 
 function toggleTheme() {
   currentTheme = currentTheme === 'light' ? 'dark' : 'light';
   document.documentElement.setAttribute('data-theme', currentTheme);
   localStorage.setItem('theme', currentTheme);
-  elements.themeToggle.textContent = currentTheme === 'light' ? ' FAR_dark' : '在未来';
+  elements.themeToggle.textContent = currentTheme === 'light' ? 'dark_image' : 'light_on';
 }
 
 // Unit Conversion
 function toggleUnits() {
   isCelsius = !isCelsius;
-  elements.unitToggle.textContent = isCelsius ? '\ImageGroup C°/F°' : 'losures F°/C°';
-  refreshWeatherDisplay();
+  elements.unitToggle.textContent = isCelsius ? '°C/°F' : '°F/°C';
+  
+  // Re-render current weather and forecast with new units
+  if (currentWeatherData) {
+    displayWeather(currentWeatherData);
+  }
+  if (currentForecastData) {
+    displayForecast(currentForecastData);
+  }
 }
 
 // Geolocation
@@ -65,45 +71,19 @@ async function handleLocation() {
   }
 
   try {
-    showLoading();
     const position = await new Promise((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(
-        resolve,
-        (error) => {
-          // Handle specific geolocation errors
-          let message = 'Unable to retrieve your location';
-          switch (error.code) {
-            case error.PERMISSION_DENIED:
-              message = 'Permission to access your location was denied';
-              break;
-            case error.POSITION_UNAVAILABLE:
-              message = 'Your location cannot be determined';
-              break;
-            case error.TIMEOUT:
-              message = 'The request to get your location timed out';
-              break;
-            case error.UNKNOWN_ERROR:
-              message = 'An unknown error occurred';
-              break;
-          }
-          reject(new Error(message));
-        }
-      );
+      navigator.geolocation.getCurrentPosition(resolve, reject);
     });
-
-    const coords = {
-      lat: position.coords.latitude,
-      lon: position.coords.longitude
-    };
-
-    const weather = await getWeather(coords);
+    
+    const weather = await getWeatherByCoords(position.coords);
+    currentWeatherData = weather;
     displayWeather(weather);
-    displayForecast(await getForecast(coords));
-    saveLastLocation(coords);
-    hideLoading();
+    const forecast = await getForecast(position.coords);
+    currentForecastData = forecast;
+    displayForecast(forecast);
+    saveLastLocation(position.coords);
   } catch (error) {
-    showError(error.message);
-    hideLoading();
+    showError('Unable to retrieve your location');
   }
 }
 
@@ -113,16 +93,15 @@ async function handleSearch() {
   if (!city) return;
 
   try {
-    showLoading();
     const weather = await getWeather(city);
+    currentWeatherData = weather;
     displayWeather(weather);
-    displayForecast(await getForecast(weather.coord));
+    const forecast = await getForecast(weather.coord);
+    currentForecastData = forecast;
+    displayForecast(forecast);
     saveLastLocation(city);
-    saveFavorite(city);
-    hideLoading();
   } catch (error) {
-    showError('City not found. Please check your spelling');
-    hideLoading();
+    showError('City not found');
   }
 }
 
@@ -150,7 +129,7 @@ function displayWeather(data) {
   elements.currentWeather.innerHTML = `
     <div class="weather-header">
       <h2>${data.name}, ${data.sys.country}</h2>
-      <img src="https://openweathermap.org/img/wn/${data.weather[0].icon}@4x.png"
+      <img src="https://openweathermap.org/img/wn/${data.weather[0].icon}@4x.png" 
            class="weather-icon" 
            alt="${data.weather[0].description}">
     </div>
@@ -164,7 +143,6 @@ function displayWeather(data) {
       </div>
     </div>
   `;
-  refreshWeatherDisplay();
 }
 
 function displayForecast(forecastData) {
@@ -180,33 +158,28 @@ function displayForecast(forecastData) {
 }
 
 // Autocomplete
-let autocompleteTimeout;
-
 async function handleAutocomplete(e) {
-  clearTimeout(autocompleteTimeout);
-  autocompleteTimeout = setTimeout(async () => {
-    const query = e.target.value.trim();
-    if (query.length < 3) {
-      elements.autocompleteResults.style.display = 'none';
-      return;
-    }
+  const query = e.target.value.trim();
+  if (query.length < 3) {
+    elements.autocompleteResults.style.display = 'none';
+    return;
+  }
 
-    try {
-      const response = await fetch(
-        `https://wft-geo-db.p.rapidapi.com/v1/geo/cities?namePrefix=${query}`,
-        {
-          headers: {
-            'X-RapidAPI-Key': GEO_API_KEY,
-            'X-RapidAPI-Host': 'wft-geo-db.p.rapidapi.com'
-          }
+  try {
+    const response = await fetch(
+      `https://wft-geo-db.p.rapidapi.com/v1/geo/cities?namePrefix=${query}`,
+      {
+        headers: {
+          'X-RapidAPI-Key': GEO_API_KEY,
+          'X-RapidAPI-Host': 'wft-geo-db.p.rapidapi.com'
         }
-      );
-      const data = await response.json();
-      showAutocomplete(data.data || []);
-    } catch (error) {
-      console.error('Autocomplete error:', error);
-    }
-  }, 300);
+      }
+    );
+    const data = await response.json();
+    showAutocomplete(data.data || []);
+  } catch (error) {
+    console.error('Autocomplete error:', error);
+  }
 }
 
 function showAutocomplete(cities) {
@@ -233,35 +206,9 @@ function closeAutocomplete(e) {
   }
 }
 
-function handleInputKeyDown(e) {
-  if (e.key === 'Enter') {
-    handleSearch();
-  }
-}
-
 // Helper Functions
 function convertTemp(temp) {
-  return isCelsius ? temp : (temp * 9 / 5 + 32);
-}
-
-function refreshWeatherDisplay() {
-  if (elements.currentWeather.innerHTML) {
-    const city = document.querySelector('.weather-header h2').textContent.split(',')[0];
-    elements.cityInput.value = city;
-  }
-}
-
-function showLoading() {
-  const loadingDiv = document.createElement('div');
-  loadingDiv.className = 'loading';
-  loadingDiv.textContent = 'Loading...';
-  elements.currentWeather.innerHTML = '';
-  elements.currentWeather.appendChild(loadingDiv);
-}
-
-function hideLoading() {
-  const loadingDiv = elements.currentWeather.querySelector('.loading');
-  if (loadingDiv) loadingDiv.remove();
+  return isCelsius ? temp : (temp * 9/5 + 32);
 }
 
 function showError(message) {
@@ -292,31 +239,4 @@ function loadLastLocation() {
   } catch (error) {
     console.error('Error loading last location:', error);
   }
-}
-
-// Favorites
-function saveFavorite(city) {
-  const favorites = JSON.parse(localStorage.getItem('favorites')) || [];
-  if (!favorites.includes(city)) {
-    favorites.push(city);
-    localStorage.setItem('favorites', JSON.stringify(favorites));
-    displayFavorites();
-  }
-}
-
-function loadFavorites() {
-  const favorites = JSON.parse(localStorage.getItem('favorites')) || [];
-  displayFavorites(favorites);
-}
-
-function displayFavorites(favorites = JSON.parse(localStorage.getItem('favorites')) || []) {
-  elements.favoritesList.innerHTML = favorites.map(city => `
-    <div class="favorite-city" onclick="handleFavoriteClick('${city}')">${city}</div>
-  `).join('');
-}
-
-function handleFavoriteClick(city) {
-  elements.cityInput.value = city;
-  handleSearch();
-  saveLastLocation(city);
 }
