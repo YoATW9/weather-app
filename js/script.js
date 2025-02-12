@@ -1,5 +1,5 @@
-const API_KEY = 'c750de11f500d5451200157e7267a1e6'; 
-const GEO_API_KEY = '05bd89c413msh97bdf92bc1a20cdp18cb47jsnb2234d8572c2'; 
+const API_KEY = 'YOUR_OPENWEATHER_API_KEY';
+const GEO_API_KEY = 'YOUR_GEODB_API_KEY';
 
 // State
 let isCelsius = true;
@@ -37,29 +37,21 @@ function setupEventListeners() {
 function initTheme() {
   currentTheme = localStorage.getItem('theme') || 'light';
   document.documentElement.setAttribute('data-theme', currentTheme);
-  elements.themeToggle.textContent = getThemeToggleText(currentTheme);
+  elements.themeToggle.textContent = currentTheme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode';
 }
 
 function toggleTheme() {
   currentTheme = currentTheme === 'light' ? 'dark' : 'light';
   document.documentElement.setAttribute('data-theme', currentTheme);
   localStorage.setItem('theme', currentTheme);
-  elements.themeToggle.textContent = getThemeToggleText(currentTheme);
-}
-
-function getThemeToggleText(theme) {
-  return theme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode';
+  elements.themeToggle.textContent = currentTheme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode';
 }
 
 // Unit Conversion
 function toggleUnits() {
   isCelsius = !isCelsius;
-  elements.unitToggle.textContent = getUnitToggleText(isCelsius);
+  elements.unitToggle.textContent = isCelsius ? '°C/°F' : '°F/°C';
   refreshWeatherDisplay();
-}
-
-function getUnitToggleText(isCelsius) {
-  return isCelsius ? '°C/°F' : '°F/°C';
 }
 
 // Geolocation
@@ -70,64 +62,41 @@ async function handleLocation() {
   }
 
   try {
-    // Get user's current position
     const position = await new Promise((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(
-        resolve,
-        (error) => {
-          // Handle specific geolocation errors
-          let errorMessage = 'Unable to retrieve your location';
-          switch (error.code) {
-            case error.PERMISSION_DENIED:
-              errorMessage = 'Permission to access your location was denied';
-              break;
-            case error.POSITION_UNAVAILABLE:
-              errorMessage = 'Your location could not be determined';
-              break;
-            case error.TIMEOUT:
-              errorMessage = 'The request to get your location timed out';
-              break;
-            case error.UNKNOWN_ERROR:
-              errorMessage = 'An unknown error occurred';
-              break;
-          }
-          reject(new Error(errorMessage));
-        }
-      );
+      navigator.geolocation.getCurrentPosition(resolve, reject);
     });
-
-    // Convert position.coords to { lat, lon } format
-    const coords = {
-      lat: position.coords.latitude,
-      lon: position.coords.longitude
-    };
-
-    // Fetch weather data using coordinates
-    const weather = await getWeather(coords);
-    displayWeather(weather);
-
-    // Fetch forecast data using coordinates
-    const forecastData = await getForecast(coords);
-    displayForecast(forecastData);
     
-    // Save the coordinates in local storage
-    saveLastLocation(coords);
+    const weather = await getWeatherByCoords(position.coords);
+    displayWeather(weather);
+    displayForecast(await getForecast(position.coords));
+    saveLastLocation(position.coords);
   } catch (error) {
-    showError(error.message);
+    showError('Unable to retrieve your location');
   }
 }
 
 // Weather Data
+async function handleSearch() {
+  const city = elements.cityInput.value.trim();
+  if (!city) return;
+
+  try {
+    const weather = await getWeather(city);
+    displayWeather(weather);
+    displayForecast(await getForecast(weather.coord));
+    saveLastLocation(city);
+  } catch (error) {
+    showError('City not found');
+  }
+}
+
 async function getWeather(query) {
   const url = typeof query === 'string' 
     ? `https://api.openweathermap.org/data/2.5/weather?q=${query}&units=metric&appid=${API_KEY}`
     : `https://api.openweathermap.org/data/2.5/weather?lat=${query.lat}&lon=${query.lon}&units=metric&appid=${API_KEY}`;
 
   const response = await fetch(url);
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.message || 'Failed to fetch weather data');
-  }
+  if (!response.ok) throw new Error('City not found');
   return response.json();
 }
 
@@ -191,14 +160,10 @@ async function handleAutocomplete(e) {
         }
       }
     );
-    if (!response.ok) {
-      throw new Error('Failed to fetch autocomplete data');
-    }
     const data = await response.json();
     showAutocomplete(data.data || []);
   } catch (error) {
     console.error('Autocomplete error:', error);
-    showError('Unable to fetch city suggestions');
   }
 }
 
@@ -213,7 +178,7 @@ function showAutocomplete(cities) {
   
   document.querySelectorAll('.autocomplete-item').forEach(item => {
     item.addEventListener('click', () => {
-      elements.cityInput.value = item.getAttribute('data-city');
+      elements.cityInput.value = item.textContent;
       elements.autocompleteResults.style.display = 'none';
       handleSearch();
     });
@@ -239,11 +204,6 @@ function refreshWeatherDisplay() {
 }
 
 function showError(message) {
-  // Remove existing error messages
-  const existingError = elements.currentWeather.querySelector('.error');
-  if (existingError) existingError.remove();
-
-  // Create new error message
   const errorDiv = document.createElement('div');
   errorDiv.className = 'error';
   errorDiv.textContent = message;
