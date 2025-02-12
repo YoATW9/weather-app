@@ -53,8 +53,26 @@ function toggleTheme() {
 // Unit Conversion
 function toggleUnits() {
   isCelsius = !isCelsius;
-  elements.unitToggle.textContent = isCelsius ? '\ImageGroup C°/F°' : 'losures F°/C°';
-  refreshWeatherDisplay();
+  elements.unitToggle.textContent = isCelsius ? '°C/°F' : '°F/°C';
+  
+  // Directly update current weather temperature
+  const currentTempElement = elements.currentWeather.querySelector('.temp');
+  if (currentTempElement) {
+    const currentTemp = parseFloat(currentTempElement.textContent.match(/\d+/)[0]);
+    const convertedTemp = convertTemp(currentTemp);
+    currentTempElement.textContent = `${Math.round(convertedTemp)}°${isCelsius ? 'C' : 'F'}`;
+  }
+
+  // Update forecast temperatures
+  document.querySelectorAll('.forecast-card .temp').forEach(tempElement => {
+    const temp = parseFloat(tempElement.textContent.match(/\d+/)[0]);
+    const convertedTemp = convertTemp(temp);
+    tempElement.textContent = `${Math.round(convertedTemp)}°${isCelsius ? 'C' : 'F'}`;
+  });
+}
+
+function convertTemp(temp) {
+  return isCelsius ? temp : (temp * 9 / 5 + 32);
 }
 
 // Geolocation
