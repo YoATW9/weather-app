@@ -65,16 +65,11 @@ async function handleLocation() {
     const position = await new Promise((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(resolve, reject);
     });
-
-    const coords = {
-      lat: position.coords.latitude,
-      lon: position.coords.longitude
-    };
-
-    const weather = await getWeather(coords);
+    
+    const weather = await getWeatherByCoords(position.coords);
     displayWeather(weather);
-    displayForecast(await getForecast(coords));
-    saveLastLocation(coords);
+    displayForecast(await getForecast(position.coords));
+    saveLastLocation(position.coords);
   } catch (error) {
     showError('Unable to retrieve your location');
   }
@@ -183,7 +178,7 @@ function showAutocomplete(cities) {
   
   document.querySelectorAll('.autocomplete-item').forEach(item => {
     item.addEventListener('click', () => {
-      elements.cityInput.value = item.textContent;
+      elements.cityInput.value = item.getAttribute('data-city');
       elements.autocompleteResults.style.display = 'none';
       handleSearch();
     });
