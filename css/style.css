@@ -112,6 +112,27 @@ button:hover {
   opacity: 0.9;
 }
 
+/* Dark/Light Mode Icons */
+.theme-toggle {
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  padding-left: 2rem;
+}
+
+.theme-toggle::before {
+  content: ' ';
+  display: inline-block;
+  width: 1.2rem;
+  height: 1.2rem;
+  background-image: url('data:image/svg+xml;utf8,<svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M17.25 17.25a7.5 7.5 0 1 0-10.606-10.606L12 2.343l5.343 5.344a7.5 7.5 0 0 0 10.606 10.606z"/></svg>');
+  margin-right: 0.5rem;
+}
+
+.dark-theme .theme-toggle::before {
+  background-image: url('data:image/svg+xml;utf8,<svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 17.25c3.54 0 6.592-2.955 7.557-7.032a.75.75 0 0 1 1.077.54l1.03-1.03a1.5 1.5 0 0 0-2.127-2.128l-1.03 1.03a.75.75 0 0 1-1.076-.55h-1.5v-1.5a.75.75 0 0 1 1.063-1.06l1.52.576c3.851 1.43 6.656 5.335 6.656 9.87 0 4.411-3.14 8.44-7.03 9.87a.75.75 0 1 1-1.062-1.061c1.886-.653 3.598-2.132 4.838-4.114-1.264 2.289-2.905 4.114-4.816 4.114-4.934 0-8.94-4.009-8.94-8.94 0-4.934 4.006-8.94 8.94-8.94 4.934 0 8.939 4.006 8.939 8.94zm-8.557 3.742a5.25 5.25 0 1 1-10.5 0 5.25 5.25 0 1 1 10.5 0z"/></svg>');
+}
+
 .weather-card {
   background-color: var(--card-bg);
   border-radius: 12px;
