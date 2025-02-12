@@ -1,5 +1,5 @@
-const API_KEY = 'YOUR_OPENWEATHER_API_KEY'; // Replace with your OpenWeatherMap API key
-const GEO_API_KEY = 'YOUR_GEODB_API_KEY';   // Replace with your RapidAPI key
+const API_KEY = 'c750de11f500d5451200157e7267a1e6'; 
+const GEO_API_KEY = '05bd89c413msh97bdf92bc1a20cdp18cb47jsnb2234d8572c2'; 
 
 // State
 let isCelsius = true;
