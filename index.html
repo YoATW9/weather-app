@@ -10,31 +10,100 @@
 <body>
   <div class="container">
     <header>
-      <h1>Weather App 🌤️</h1>
-      <button id="theme-toggle"> conscious Dark Mode</button>
+      <h1>Weather App</h1>
+      <div>
+        <button id="theme-toggle">.gradient Dark Mode</button>
+        <button id="unit-toggle"><span class="celsius">°C</span> | <span class="fahrenheit">°F</span></button>
+      </div>
     </header>
 
     <div class="search-container">
-      <div class="search-box">
-        <input type="text" id="city-input" placeholder="Enter city name">
-        <div id="autocomplete-results" class="autocomplete-dropdown"></div>
-        <button id="search-btn">Search</button>
+      <input type="text" id="city-input" placeholder="Enter city name">
+      <button id="search-btn" class="search-button">
+        <i class="wi wi-search"></i>
+      </button>
+      <button id="location-btn"><i class="wi wi-location"></i></button>
+    </div>
+
+    <div id="current-weather" class="weather-card">
+      <div class="weather-header">
+        <h2>Testing City, Country</h2>
+        <div class="weather-icon">
+          <i class="wi wi-day-sunny"></i>
+        </div>
       </div>
-      <div class="button-group">
-        <button id="location-btn">📍 My Location</button>
-        <button id="unit-toggle">C°/F°</button>
+      <div class="weather-details">
+        <p class="temperature">25°C</p>
+        <p class="description">Sunny</p>
+      </div>
+      <div class="stats">
+        <div class="stat">
+          <p class="label">Humidity</p>
+          <p class="value">70%</p>
+        </div>
+        <div class="stat">
+          <p class="label">Wind Speed</p>
+          <p class="value">10 m/s</p>
+        </div>
+        <div class="stat">
+          <p class="label">Pressure</p>
+          <p class="value">1013 hPa</p>
+        </div>
       </div>
     </div>
 
-    <div id="current-weather" class="weather-card"></div>
     <div class="forecast-container">
       <h2>5-Day Forecast</h2>
-      <div id="forecast" class="forecast-cards"></div>
+      <div id="forecast" class="forecast-cards">
+        <div class="forecast-card">
+          <h3>Monday</h3>
+          <i class="wi wi-day-cloudy"></i>
+          <p class="temperature">20°C</p>
+          <p class="description">Partly Cloudy</p>
+        </div>
+        <div class="forecast-card">
+          <h3>Tuesday</h3>
+          <i class="wi wi-rain-wind"></i>
+          <p class="temperature">18°C</p>
+          <p class="description">Rain</p>
+        </div>
+      </div>
     </div>
+
     <div class="favorites-container">
       <h3>Favorites</h3>
-      <div id="favorites-list"></div>
+      <div id="favorites-list">
+        <div class="favorite-city">London</div>
+        <div class="favorite-city">Paris</div>
+      </div>
     </div>
+
+    <div class="container">
+      <!-- Existing content: header, search, current weather, forecast, favorites -->
+      
+      <!-- Add Gallery Section -->
+      <section id="gallery" class="gallery-container">
+        <h2>Weather Gallery</h2>
+        <div class="gallery-grid">
+          <div class="gallery-item">
+            <img src="https://picsum.photos/400?random=1" alt="Weather Image 1">
+            <div class="gallery-caption">
+              <h3>Sunny Day</h3>
+              <p>Enjoy the sunshine!</p>
+            </div>
+          </div>
+          <div class="gallery-item">
+            <img src="https://picsum.photos/400?random=2" alt="Weather Image 2">
+            <div class="gallery-caption">
+              <h3>Rainy Day</h3>
+              <p>Cozy indoors</p>
+            </div>
+          </div>
+          <!-- Add more gallery items -->
+        </div>
+      </section>
+    </div>
+
   </div>
 
   <script src="js/script.js"></script>

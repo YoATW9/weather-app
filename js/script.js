@@ -40,14 +40,14 @@ function setupEventListeners() {
 function initTheme() {
   currentTheme = localStorage.getItem('theme') || 'light';
   document.documentElement.setAttribute('data-theme', currentTheme);
-  elements.themeToggle.textContent = currentTheme === 'light' ? '_FARpack_dark' : '🌠LIGHT';
+  elements.themeToggle.textContent = currentTheme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode';
 }
 
 function toggleTheme() {
   currentTheme = currentTheme === 'light' ? 'dark' : 'light';
   document.documentElement.setAttribute('data-theme', currentTheme);
   localStorage.setItem('theme', currentTheme);
-  elements.themeToggle.textContent = currentTheme === 'light' ? ' FAR_dark' : '在未来';
+  elements.themeToggle.textContent = currentTheme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode';
 }
 
 // Unit Conversion
